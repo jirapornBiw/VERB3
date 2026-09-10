@@ -1,11 +1,6 @@
-# VERB3 — Deploy Ready
+# VERB3 — Static V2
 
-เวอร์ชันนี้เป็น Static Website แบบไม่ต้อง Build และไม่ต้องใช้ Node.js / Next.js / Database
+Responsive static website for searching English verb forms (V1/V2/V3) and Thai meanings.
 
-ไฟล์หลัก:
-- `index.html`
-- `style.css`
-- `script.js`
-- `favicon.svg`
-
-สามารถอัปไฟล์ทั้งหมดขึ้น GitHub Pages, Cloudflare Pages, Netlify หรือ Web Hosting ทั่วไปได้โดยตรง
+## Deploy
+Upload all files in this folder to the root of a GitHub Pages branch. No build step is required.

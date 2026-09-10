@@ -2,68 +2,91 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="ค้นหากริยาอังกฤษ 3 ช่องจากคำช่อง 1, 2 หรือ 3 พร้อมความหมายภาษาไทยและตัวอย่างประโยค" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="description" content="ค้นหากริยาอังกฤษ 3 ช่องจาก V1, V2, V3 หรือความหมายภาษาไทย พร้อมตัวอย่างและเสียงอ่าน" />
+  <meta name="theme-color" content="#ffffff" />
   <link rel="icon" href="./favicon.svg" />
   <link rel="stylesheet" href="./style.css" />
-  <title>กริยา 3 ช่อง — ค้นหาคำกริยาอังกฤษได้ทุกช่อง</title>
+  <title>VERB3 — ค้นหากริยา 3 ช่อง</title>
 </head>
 <body>
-  <main class="site-shell">
+  <div class="app-shell" id="top">
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="หน้าแรก กริยา 3 ช่อง">
-        <span class="brand-mark">📖</span>
-        <span><b>VERB</b><em>3</em><small>กริยา 3 ช่อง</small></span>
+      <a class="brand" href="#top" aria-label="VERB3 หน้าแรก">
+        <span class="brand-book" aria-hidden="true">📖</span>
+        <span class="brand-word">VERB<em>3</em></span>
+        <small>Learn English Verbs Easily</small>
       </a>
-      <div class="mini-note">✨ ฝึกวันละ 5 คำ เก่งขึ้นทุกวัน</div>
+      <nav class="desktop-nav" aria-label="เมนูหลัก">
+        <a class="active" href="#top">⌂ หน้าแรก</a>
+        <a href="#commonVerbs">▤ รายการทั้งหมด</a>
+        <button type="button" class="nav-button" id="favoritesButton">☆ คำที่ชอบ</button>
+        <button type="button" class="nav-button" id="aboutButton">ⓘ เกี่ยวกับ</button>
+      </nav>
+      <button class="theme-button" id="themeButton" type="button" aria-label="สลับโหมดสี">☾</button>
     </header>
 
-    <section class="hero" id="top">
-      <div class="hero-copy">
-        <p class="eyebrow">ENGLISH MADE SIMPLE</p>
-        <h1>ค้นหา <span>กริยา 3 ช่อง</span><br />ได้จากทุกคำ</h1>
-        <p class="hero-sub">พิมพ์คำกริยาช่อง 1, 2 หรือ 3 ก็ได้<br class="desktop-break" /> เราจะช่วยค้นหาคำที่เหลือ พร้อมความหมายและตัวอย่าง</p>
-        <div class="search-wrap">
-          <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="searchInput" placeholder="ลองค้นหา play, went, eaten..." aria-label="ค้นหาคำกริยา" autocomplete="off" />
-          <button id="clearSearch" aria-label="ล้างคำค้นหา" hidden>×</button>
-          <span class="search-label">ค้นหา</span>
+    <main class="main-content">
+      <section class="search-zone" aria-label="ค้นหากริยา">
+        <form class="search-row" id="searchForm">
+          <label class="search-box" for="searchInput">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="เช่น go, went, eaten, กิน..." autocomplete="off" enterkeyhint="search" />
+            <button id="clearSearch" class="clear-button" type="button" aria-label="ล้างคำค้นหา" hidden>×</button>
+          </label>
+          <button class="search-button" type="submit">⌕ <span>ค้นหา</span></button>
+        </form>
+        <div class="search-tools">
+          <p>ค้นหาได้จาก V1, V2, V3 หรือความหมายภาษาไทย</p>
+          <div class="filters" role="group" aria-label="ตัวกรองคำกริยา">
+            <button class="active" type="button" data-filter="all">ทั้งหมด</button>
+            <button type="button" data-filter="regular">Regular</button>
+            <button type="button" data-filter="irregular">Irregular</button>
+          </div>
+          <button class="reset-button" id="resetSearch" type="button">↻ ล้างการค้นหา</button>
         </div>
-        <div class="popular"><small>คำค้นยอดนิยม</small><span id="popularButtons"></span></div>
-      </div>
-
-      <div class="hero-art" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
-        <div class="word-card card-v1"><small>ช่อง 1</small><b>PLAY</b><i>ปัจจุบัน</i></div>
-        <span class="art-arrow arrow-one">→</span>
-        <div class="word-card card-v2"><small>ช่อง 2</small><b>PLAYED</b><i>อดีต</i></div>
-        <span class="art-arrow arrow-two">→</span>
-        <div class="word-card card-v3"><small>ช่อง 3</small><b>PLAYED</b><i>สมบูรณ์</i></div>
-        <div class="dot dot-one"></div><div class="dot dot-two"></div><div class="dot dot-three"></div>
-      </div>
-    </section>
-
-    <section class="content">
-      <div class="section-head">
-        <div><p class="eyebrow">SEARCH RESULT</p><h2 id="sectionTitle"></h2><p id="sectionSub"></p></div>
-        <div class="filters" role="group" aria-label="ตัวกรองคำกริยา">
-          <button class="active" data-filter="all">ทั้งหมด</button>
-          <button data-filter="irregular">ไม่ปกติ</button>
-          <button data-filter="regular">ปกติ</button>
-        </div>
-      </div>
-
-      <div id="resultArea"></div>
-      <section id="relatedSection">
-        <h3 class="related-title" id="relatedTitle"></h3>
-        <div class="verb-list" id="verbList"></div>
       </section>
 
-      <aside class="tip"><span>💡</span><div><b>จำง่ายขึ้น</b><p>คำกริยาปกติ (Regular verbs) เติม <strong>-ed</strong> ในช่อง 2 และ 3 เช่น play → played → played ส่วนคำกริยาไม่ปกติต้องฝึกจำทีละคำ</p></div></aside>
-    </section>
+      <section class="result-section" aria-live="polite" aria-atomic="true">
+        <div id="resultArea"></div>
+      </section>
 
-    <footer><span>VERB<em>3</em></span><p>เครื่องมือเล็ก ๆ เพื่อทุกก้าวของการเรียนภาษาอังกฤษ</p></footer>
-  </main>
+      <section class="related-panel" id="relatedSection" hidden>
+        <div class="section-title-row">
+          <div><span>🔥</span><h2 id="relatedTitle">คำที่เกี่ยวข้อง</h2></div>
+          <button type="button" id="showAllRelated">ดูเพิ่มเติม →</button>
+        </div>
+        <div class="chip-list" id="relatedList"></div>
+      </section>
+
+      <section class="common-panel" id="commonVerbs">
+        <div class="section-title-row">
+          <div><span>📖</span><h2>คำกริยาที่พบบ่อย</h2></div>
+          <small>คลิกเพื่อดูคำศัพท์ได้ทันที</small>
+        </div>
+        <div class="common-list" id="commonList"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <b>VERB<em>3</em></b>
+      <span>ฝึกกริยา 3 ช่อง ให้เป็นเรื่องง่าย ♥</span>
+    </footer>
+
+    <nav class="mobile-nav" aria-label="เมนูมือถือ">
+      <a class="active" href="#top"><span>⌂</span>หน้าแรก</a>
+      <a href="#commonVerbs"><span>▤</span>รายการทั้งหมด</a>
+      <button type="button" id="mobileFavorites"><span>☆</span>คำที่ชอบ</button>
+      <button type="button" id="mobileAbout"><span>ⓘ</span>เกี่ยวกับ</button>
+    </nav>
+  </div>
+
+  <dialog id="infoDialog">
+    <button class="dialog-close" type="button" aria-label="ปิด">×</button>
+    <h2>เกี่ยวกับ VERB3</h2>
+    <p>เครื่องมือค้นหากริยาอังกฤษ 3 ช่องแบบง่าย ค้นหาได้จาก V1, V2, V3 หรือความหมายภาษาไทย</p>
+  </dialog>
+
   <script src="./script.js"></script>
 </body>
 </html>

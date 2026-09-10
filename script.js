@@ -145,7 +145,8 @@ function toggleTheme(){document.body.classList.toggle("dark");localStorage.setIt
 document.addEventListener("DOMContentLoaded",()=>{
   if(localStorage.getItem("verb3-theme")==="dark") document.body.classList.add("dark");
   $("#themeButton").textContent=document.body.classList.contains("dark")?'☀':'☾';
-  renderCommon(); bindDynamic(); performSearch("go",{focusResult:false});
+  renderCommon(); bindDynamic(); performSearch("",{focusResult:false});
+  $("#searchInput").focus();
   $("#searchForm").addEventListener("submit",e=>{e.preventDefault();performSearch($("#searchInput").value)});
   $("#searchInput").addEventListener("input",e=>{$("#clearSearch").hidden=!e.target.value});
   $("#searchInput").addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();$("#searchInput").value="";performSearch("",{focusResult:false});$("#searchInput").focus()}});

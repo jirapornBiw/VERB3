@@ -56,159 +56,104 @@ const verbs = [] = [
   { v1: "write", v2: "wrote", v3: "written", meaning: "เขียน", example: "She has written three letters.", translation: "เธอเขียนจดหมายสามฉบับ", irregular: true },
 ];
 
-const popular = ["go", "eat", "see", "take", "write"];
-
-let query = "";
+const commonWords = ["be","go","have","do","eat","see","come","get"];
 let filter = "all";
+let currentQuery = "";
+let lastResult = null;
+const favorites = new Set(JSON.parse(localStorage.getItem("verb3-favorites") || "[]"));
+const $ = (s) => document.querySelector(s);
 
-const $ = (selector) => document.querySelector(selector);
+function escapeHtml(value){return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function normalizedParts(value){return String(value).toLowerCase().split(/[\/,]/).map(x=>x.trim()).filter(Boolean)}
+function matchesFilter(v){return filter === "all" || (filter === "irregular" ? !!v.irregular : !v.irregular)}
+function speak(word){if(!("speechSynthesis" in window)) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(String(word).split(" / ")[0]);u.lang="en-US";speechSynthesis.speak(u)}
+function allSearchValues(v){return [v.v1,v.v2,v.v3,v.meaning]}
+function exactMatch(v,q){return allSearchValues(v).some(value=>normalizedParts(value).includes(q))}
+function partialMatch(v,q){return allSearchValues(v).some(value=>String(value).toLowerCase().includes(q))}
 
-function isExactMatch(value, q) {
-  return value.toLowerCase().split("/").map(word => word.trim()).includes(q);
+function findResult(q){
+  q=q.trim().toLowerCase();
+  const pool=verbs.filter(matchesFilter);
+  if(!q) return {exact:null, related:[]};
+  const exact=pool.find(v=>exactMatch(v,q));
+  if(exact) return {exact, related:pool.filter(v=>v!==exact && (partialMatch(v,q) || [v.v1,v.v2,v.v3].some(x=>String(x).toLowerCase().includes(exact.v1))))};
+  return {exact:null, related:pool.filter(v=>partialMatch(v,q))};
 }
 
-function getSearchResult() {
-  const q = query.trim().toLowerCase();
-  const filteredVerbs = verbs.filter(v =>
-    filter === "all" || (filter === "irregular" ? v.irregular : !v.irregular)
-  );
-
-  if (!q) return { exact: undefined, related: filteredVerbs };
-
-  const exact = filteredVerbs.find(v =>
-    [v.v1, v.v2, v.v3, v.meaning].some(value => isExactMatch(value, q))
-  );
-  if (exact) return { exact, related: [] };
-
-  const related = filteredVerbs.filter(v =>
-    [v.v1, v.v2, v.v3, v.meaning].some(value => value.toLowerCase().includes(q))
-  );
-  return { exact: undefined, related };
+function resultCard(v){
+  const fav=favorites.has(v.v1);
+  const forms=[{label:"V1 (Base Form)",word:v.v1,cls:"v1"},{label:"V2 (Past Simple)",word:v.v2,cls:"v2"},{label:"V3 (Past Participle)",word:v.v3,cls:"v3"}];
+  return `<article class="result-card" id="activeResult">
+    <div class="result-head">
+      <button class="main-speaker" data-speak="${escapeHtml(v.v1)}" aria-label="ฟังเสียง ${escapeHtml(v.v1)}">🔊</button>
+      <div class="word-title"><h1>${escapeHtml(v.v1)}</h1><p>${escapeHtml(v.meaning)}</p></div>
+      <span class="type-tag ${v.irregular?'':'regular'}">${v.irregular?'Irregular':'Regular'}</span>
+      <button class="favorite-btn" data-favorite="${escapeHtml(v.v1)}" aria-label="เพิ่มในคำที่ชอบ">${fav?'★':'☆'}</button>
+    </div>
+    <div class="form-grid">${forms.map(f=>`<div class="form-card ${f.cls}"><small>${f.label}</small><div class="form-row"><strong>${escapeHtml(f.word)}</strong><button class="speak-btn" data-speak="${escapeHtml(f.word)}" aria-label="ฟังเสียง ${escapeHtml(f.word)}">🔊</button></div></div>`).join('')}</div>
+    <div class="example-box"><h3>❝ ตัวอย่างประโยค</h3><p>${escapeHtml(v.example)}</p><span>${escapeHtml(v.translation)}</span></div>
+    <div class="tip-box">💡 <b>Tip:</b> “${escapeHtml(v.v1)} – ${escapeHtml(v.v2)} – ${escapeHtml(v.v3)}” ลองอ่านออกเสียงทั้ง 3 รูปต่อกันเพื่อช่วยจำ</div>
+  </article>`;
 }
 
-function speak(word) {
-  if (!("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(word.split(" / ")[0]);
-  utterance.lang = "en-US";
-  window.speechSynthesis.speak(utterance);
+function renderCommon(){
+  $("#commonList").innerHTML=commonWords.map(word=>{const v=verbs.find(x=>x.v1===word);return `<button class="common-item" data-query="${word}"><b>${word}</b><small>${escapeHtml(v?.meaning||'')}</small></button>`}).join('');
 }
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function renderRelated(items,q){
+  const sec=$("#relatedSection");
+  if(!items.length){sec.hidden=true;return}
+  sec.hidden=false; $("#relatedTitle").textContent=q?"คำที่เกี่ยวข้อง":"คำแนะนำ";
+  $("#relatedList").innerHTML=items.slice(0,8).map(v=>`<button class="chip" data-query="${escapeHtml(v.v1)}">${escapeHtml(v.v1)} <small>${escapeHtml(v.meaning)}</small></button>`).join('');
 }
-
-function resultCard(v) {
-  const forms = [v.v1, v.v2, v.v3];
-  const labels = ["ปัจจุบัน / รูปเดิม", "อดีต", "Past participle"];
-  return `
-    <article class="result-card">
-      <div class="verb-grid">
-        ${forms.map((word, i) => `
-          <div class="verb-cell form-${i + 1}">
-            <span><b>V${i + 1}</b> ช่อง ${i + 1}</span>
-            <div>
-              <strong>${escapeHtml(word)}</strong>
-              <button class="speak-btn" data-word="${escapeHtml(word)}" aria-label="ฟังการออกเสียง ${escapeHtml(word)}">🔊</button>
-            </div>
-            <small>${labels[i]}</small>
-          </div>`).join("")}
-      </div>
-      <div class="meaning-row">
-        <div>
-          <small>ความหมาย</small>
-          <strong>${escapeHtml(v.meaning)}</strong>
-          <span class="tag ${v.irregular ? "irregular" : "regular"}">${v.irregular ? "Irregular verb" : "Regular verb"}</span>
-        </div>
-        <div class="example">
-          <small>ตัวอย่างประโยค</small>
-          <p>“${escapeHtml(v.example)}”</p>
-          <span>${escapeHtml(v.translation)}</span>
-        </div>
-      </div>
-    </article>`;
+function suggestionWords(q){
+  const first=q.charAt(0); return verbs.filter(matchesFilter).filter(v=>v.v1.startsWith(first)).slice(0,4);
 }
-
-function render() {
-  const searchResult = getSearchResult();
-  const defaultFeatured = searchResult.related.find(v => v.v1 === "play");
-  const featured = query.trim() ? searchResult.exact : defaultFeatured;
-  const relatedResults = query.trim()
-    ? searchResult.related
-    : searchResult.related.filter(v => !defaultFeatured || v.v1 !== defaultFeatured.v1);
-  const resultCount = featured ? 1 : relatedResults.length;
-
-  const input = $("#searchInput");
-  if (input.value !== query) input.value = query;
-  $("#clearSearch").hidden = !query;
-  $("#sectionTitle").textContent = query ? `ผลการค้นหา “${query}”` : "ตัวอย่างคำกริยา";
-  $("#sectionSub").textContent = featured
-    ? "พบคำที่ตรงกัน — ค้นหาได้จากทุกช่องและความหมายภาษาไทย"
-    : `พบ ${resultCount} คำที่เกี่ยวข้อง — ค้นหาได้จากทุกช่องและความหมายภาษาไทย`;
-
-  document.querySelectorAll(".filters button").forEach(btn =>
-    btn.classList.toggle("active", btn.dataset.filter === filter)
-  );
-
-  const resultArea = $("#resultArea");
-  if (featured) {
-    resultArea.innerHTML = resultCard(featured);
-  } else if (relatedResults.length === 0) {
-    resultArea.innerHTML = `
-      <div class="empty-state">
-        <div>⌕</div>
-        <h3>ยังไม่พบคำว่า “${escapeHtml(query)}”</h3>
-        <p>ลองตรวจสอบการสะกด หรือค้นหาด้วยคำกริยาอีกช่องหนึ่ง</p>
-        <button id="resetSearch">↻ ดูคำทั้งหมด</button>
-      </div>`;
-  } else {
-    resultArea.innerHTML = "";
+function performSearch(rawQuery,{focusResult=true}={}){
+  const q=rawQuery.trim(); currentQuery=q; $("#searchInput").value=q; $("#clearSearch").hidden=!q;
+  if(!q){
+    $("#resultArea").innerHTML=`<div class="empty-state"><div class="empty-icon">⌕</div><h2>ค้นหากริยา 3 ช่อง</h2><p>พิมพ์คำ เช่น go, went, eaten หรือความหมายภาษาไทย แล้วกดค้นหา</p><div class="suggestion-list">${commonWords.slice(0,5).map(w=>`<button data-query="${w}">${w}</button>`).join('')}</div></div>`;
+    renderRelated([],""); lastResult=null; return;
   }
-
-  const relatedSection = $("#relatedSection");
-  if (relatedResults.length > 0) {
-    relatedSection.hidden = false;
-    $("#relatedTitle").textContent = query ? "คำที่เกี่ยวข้อง" : "คำศัพท์เพิ่มเติม";
-    $("#verbList").innerHTML = relatedResults.slice(0, 12).map(v => `
-      <button class="verb-item" data-verb="${escapeHtml(v.v1)}">
-        <span><b>${escapeHtml(v.v1)}</b><small>${escapeHtml(v.meaning)}</small></span>
-        <span>${escapeHtml(v.v2)}</span>
-        <span>${escapeHtml(v.v3)}</span>
-        <span>→</span>
-      </button>`).join("");
+  const res=findResult(q); lastResult=res;
+  if(res.exact){ $("#resultArea").innerHTML=resultCard(res.exact); renderRelated(res.related,q); }
+  else if(res.related.length){
+    const v=res.related[0]; $("#resultArea").innerHTML=resultCard(v); renderRelated(res.related.slice(1),q);
   } else {
-    relatedSection.hidden = true;
+    const suggestions=suggestionWords(q.toLowerCase());
+    $("#resultArea").innerHTML=`<div class="empty-state"><div class="empty-icon">🔎</div><h2>ไม่พบคำว่า “${escapeHtml(q)}”</h2><p>ลองตรวจสอบการสะกด หรือค้นหาด้วยรูปคำกริยาอีกช่องหนึ่ง</p><div class="suggestion-list">${suggestions.map(v=>`<button data-query="${escapeHtml(v.v1)}">${escapeHtml(v.v1)}</button>`).join('')}</div></div>`;
+    renderRelated([],q);
   }
-
-  document.querySelectorAll(".speak-btn").forEach(btn =>
-    btn.addEventListener("click", () => speak(btn.dataset.word))
-  );
-  document.querySelectorAll(".verb-item").forEach(btn =>
-    btn.addEventListener("click", () => { query = btn.dataset.verb; render(); window.scrollTo({ top: 420, behavior: "smooth" }); })
-  );
-  const reset = $("#resetSearch");
-  if (reset) reset.addEventListener("click", () => { query = ""; filter = "all"; render(); });
+  bindDynamic();
+  if(focusResult){
+    const input=$("#searchInput"); input.blur();
+    if(window.innerWidth<801) setTimeout(()=>$("#activeResult")?.scrollIntoView({behavior:"smooth",block:"start"}),60);
+  }
 }
+function bindDynamic(){
+  document.querySelectorAll("[data-speak]").forEach(b=>b.onclick=()=>speak(b.dataset.speak));
+  document.querySelectorAll("[data-query]").forEach(b=>b.onclick=()=>performSearch(b.dataset.query));
+  document.querySelectorAll("[data-favorite]").forEach(b=>b.onclick=()=>{const w=b.dataset.favorite;favorites.has(w)?favorites.delete(w):favorites.add(w);localStorage.setItem("verb3-favorites",JSON.stringify([...favorites]));b.textContent=favorites.has(w)?'★':'☆'});
+}
+function showFavorites(){
+  const items=verbs.filter(v=>favorites.has(v.v1));
+  if(!items.length){$("#resultArea").innerHTML=`<div class="empty-state"><div class="empty-icon">☆</div><h2>ยังไม่มีคำที่ชอบ</h2><p>กดดาวที่ผลลัพธ์เพื่อบันทึกคำศัพท์ไว้ดูภายหลัง</p></div>`;renderRelated([],"");return}
+  performSearch(items[0].v1);
+  renderRelated(items.slice(1),"คำที่ชอบ");
+}
+function toggleTheme(){document.body.classList.toggle("dark");localStorage.setItem("verb3-theme",document.body.classList.contains("dark")?"dark":"light");$("#themeButton").textContent=document.body.classList.contains("dark")?'☀':'☾'}
 
-document.addEventListener("DOMContentLoaded", () => {
-  const popularWrap = $("#popularButtons");
-  popular.forEach(word => {
-    const btn = document.createElement("button");
-    btn.textContent = word;
-    btn.addEventListener("click", () => { query = word; render(); });
-    popularWrap.appendChild(btn);
-  });
-
-  $("#searchInput").addEventListener("input", e => { query = e.target.value; render(); });
-  $("#clearSearch").addEventListener("click", () => { query = ""; render(); $("#searchInput").focus(); });
-  document.querySelectorAll(".filters button").forEach(btn =>
-    btn.addEventListener("click", () => { filter = btn.dataset.filter; render(); })
-  );
-
-  render();
+document.addEventListener("DOMContentLoaded",()=>{
+  if(localStorage.getItem("verb3-theme")==="dark") document.body.classList.add("dark");
+  $("#themeButton").textContent=document.body.classList.contains("dark")?'☀':'☾';
+  renderCommon(); bindDynamic(); performSearch("",{focusResult:false});
+  $("#searchInput").focus();
+  $("#searchForm").addEventListener("submit",e=>{e.preventDefault();performSearch($("#searchInput").value)});
+  $("#searchInput").addEventListener("input",e=>{$("#clearSearch").hidden=!e.target.value});
+  $("#searchInput").addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();$("#searchInput").value="";performSearch("",{focusResult:false});$("#searchInput").focus()}});
+  $("#clearSearch").onclick=()=>{performSearch("",{focusResult:false});$("#searchInput").focus()};
+  $("#resetSearch").onclick=()=>{filter="all";document.querySelectorAll(".filters button").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));performSearch("",{focusResult:false});$("#searchInput").focus()};
+  document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll(".filters button").forEach(x=>x.classList.toggle("active",x===b));performSearch($("#searchInput").value,{focusResult:false})});
+  $("#themeButton").onclick=toggleTheme;
+  $("#favoritesButton").onclick=showFavorites; $("#mobileFavorites").onclick=showFavorites;
+  const dialog=$("#infoDialog"); const openAbout=()=>dialog.showModal(); $("#aboutButton").onclick=openAbout; $("#mobileAbout").onclick=openAbout; dialog.querySelector(".dialog-close").onclick=()=>dialog.close();
 });
